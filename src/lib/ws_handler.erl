@@ -11,13 +11,12 @@ init(Req, _Opts) ->
 
 %% called when upgraded to websocket
 websocket_init(State) ->
-  global_state:add_client(self()),
   {reply, {text, map_generator:default_map()}, State}.
 
 %% handling messages
 websocket_handle({text, <<"player: ", Name/binary>>}, State) ->
-  global_state:update_client(self(), [{username, Name}]),
-  io:format("Client connected: ~s~n", [Name]),
+  Username = binary_to_list(Name),
+  global_state:initialize_client(self(), [{username, Username}]),
   {ok, State};
 websocket_handle({text, Msg}, State) ->
   io:format("Message received: ~s~n", [Msg]),
@@ -28,10 +27,29 @@ websocket_handle(_Other, State) ->
 %% handling system/OTP messages
 websocket_info({broadcast, Msg}, State) ->
   {reply, {text, Msg}, State};
-websocket_info(_Info, State) ->
+websocket_info({disconnect, Reason}, State) ->
+  CloseCode =
+    case Reason of
+      <<"username_taken">> ->
+        4001;
+      <<"invalid_data">> ->
+        4002;
+      _ ->
+        4000
+    end,
+  {reply, {close, CloseCode, Reason}, State};
+websocket_info(Info, State) ->
+  io:format("cayo aqui la info esta: ~p~n", [Info]),
   {ok, State}.
 
-terminate(_Reason, _Req, _State) ->
-  global_state:remove_client(self()),
+terminate(Reason, _Req, _State) ->
+  case Reason of
+    {remote, 1000, <<"Client disconnected">>} ->
+      global_state:remove_client(self());
+    timeout ->
+      global_state:disconnect_client(self());
+    _ ->
+      io:format("Reason for closing connection not handled: ~p~n", [Reason])
+  end,
   io:format("Client disconnected~n"),
   ok.
