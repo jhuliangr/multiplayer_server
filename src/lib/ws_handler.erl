@@ -46,6 +46,8 @@ terminate(Reason, _Req, _State) ->
   case Reason of
     {remote, 1000, <<"Client disconnected">>} ->
       global_state:remove_client(self());
+    {remote, 1001, _Text} ->
+      global_state:remove_client(self());
     timeout ->
       global_state:disconnect_client(self());
     _ ->

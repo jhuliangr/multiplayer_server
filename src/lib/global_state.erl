@@ -78,7 +78,7 @@ handle_cast({initialize, Pid, Updates}, State = #state{clients = Clients}) ->
       UpdatedClients = [UpdatedClient | FilteredClients],
       {noreply, State#state{clients = UpdatedClients}};
     {ok, ExistingClient} when ExistingClient#client.pid =/= undefined ->
-      io:format("Cliente with username ~s is already connected. Rejecting connection."
+      io:format("Client with username ~s is already connected. Rejecting connection."
                 "..~n",
                 [Username]),
       Pid ! {disconnect, <<"username_taken">>},
